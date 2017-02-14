@@ -21,7 +21,6 @@ template<class T> class HeapNode;
 template<class T> class HeapElt;
 template<class T> class DoubleHeap;
 
-
 /**
  * \brief Shared heap (internal)
  *
@@ -98,6 +97,12 @@ public:
 
 	/**  \brief Identifier of this heap */
 	const int heap_id;
+
+	bool is_sup(const HeapNode<T>* node1, const HeapNode<T>* node2) {
+		return costf.shared_comparator()(
+				std::make_pair(node1->elt->data,node1->elt->crit[heap_id]),
+				std::make_pair(node2->elt->data,node2->elt->crit[heap_id]));
+	}
 
 protected:
 
@@ -475,7 +480,7 @@ template<class T>
 void SharedHeap<T>::percolate_up(HeapNode<T>* node) {
 	assert(node);
 
-	while (node->father && node->father->is_sup(node,heap_id)) {
+	while (node->father && is_sup(node->father,node)) {
 		node->switch_elt(node->father,heap_id);
 		node = node->father;
 	}
@@ -489,8 +494,8 @@ void SharedHeap<T>::percolate_down(HeapNode<T>* node) {
 	bool b=true;
 	while (b && (node->left)) {
 		if (node->right) {
-			if (node->is_sup(node->left,heap_id)) {
-				if (node->right->is_sup(node->left,heap_id)) {
+			if (is_sup(node,node->left)) {
+				if (is_sup(node->right,node->left)) {
 					// left is the smallest
 					node->switch_elt(node->left,heap_id);
 					node = node->left;  // next
@@ -500,7 +505,7 @@ void SharedHeap<T>::percolate_down(HeapNode<T>* node) {
 					node = node->right;  // next
 				}
 			} else {
-				if (node->is_sup(node->right,heap_id)) {
+				if (is_sup(node,node->right)) {
 					// right is the smallest
 					node->switch_elt(node->right,heap_id);
 					node = node->right;  // next
@@ -509,7 +514,7 @@ void SharedHeap<T>::percolate_down(HeapNode<T>* node) {
 				}
 			}
 		} else { // no more right child but there is a left child
-			if (node->is_sup(node->left,heap_id)) {
+			if (is_sup(node,node->left)) {
 				// left is the smallest
 				node->switch_elt(node->left,heap_id);
 				node = node->left;  // next
@@ -535,14 +540,14 @@ bool SharedHeap<T>::heap_state() {
 			return false;
 		}
 		if (node->left) {
-			if (node->is_sup(node->left,heap_id)) {
+			if (is_sup(node,node->left)) {
 				//std::cerr << "node elt:" << node->elt->crit[heap_id] << " node left:" <<  node->left->elt->crit[heap_id] << std::endl;
 				return false;
 			}
 			else s.push(node->left);
 		}
 		if (node->right) {
-			if (node->is_sup(node->right,heap_id)) {
+			if (is_sup(node,node->right)) {
 				//std::cerr << "node elt:" << node->elt->crit[heap_id] << " node left:" <<  node->right->elt->crit[heap_id] << std::endl;
 				return false;
 			}

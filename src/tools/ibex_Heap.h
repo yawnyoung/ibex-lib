@@ -17,6 +17,23 @@
 
 namespace ibex {
 
+template<class T>
+struct HeapComparator {
+	virtual ~HeapComparator() { }
+	virtual bool operator()(const std::pair<T*,double>& c1, const std::pair<T*,double>& c2) const {
+		return c1.second >= c2.second;
+	}
+};
+
+template<class T>
+class SharedHeapComparator {
+public:
+	virtual ~SharedHeapComparator() { }
+	virtual bool operator()(const std::pair<T*,double>& c1, const std::pair<T*,double>& c2) const {
+		return c1.second >= c2.second;
+	}
+};
+
 /** \ingroup strategy
  *
  * \brief Cost function (for Heap/DoubleHeap)
@@ -34,6 +51,13 @@ public:
 	 * \brief Return the cost associated to "data"
 	 */
 	virtual double cost(const T& data) const=0;
+
+	virtual const HeapComparator<T>& comparator() const { return default_comparator; };
+
+	virtual const SharedHeapComparator<T>& shared_comparator() const { return default_shared_comparator; };
+
+	HeapComparator<T> default_comparator;
+	SharedHeapComparator<T> default_shared_comparator;
 };
 
 
@@ -115,17 +139,6 @@ std::ostream& operator<<(std::ostream&, const Heap<T>&);
 /*================================== inline implementations ========================================*/
 
 
-/* we need this dummy class just because
- * the xxx_heap functions take the comparator
- * argument by copy (hence, we cannot give
- * "*this" since the class is abstract) */
-template<class T>
-struct HeapComparator {
-	bool operator()(const std::pair<T*,double>& c1, const std::pair<T*,double>& c2) {
-		return c1.second >= c2.second;
-	}
-};
-
 template<class T>
 Heap<T>::Heap(CostFunc<T>& costf) : costf(costf) {
 
@@ -156,7 +169,7 @@ template<class T>
 void Heap<T>::contract(double loup) {
 	//cout << " before contract heap  " << l.size() << endl;
 
-	sort_heap(l.begin(),l.end(),HeapComparator<T>());
+	sort_heap(l.begin(),l.end(),costf.comparator());
 	typename std::vector<std::pair<T*,double> >::iterator it0=l.begin();
 
 	int k=0;
@@ -168,7 +181,7 @@ void Heap<T>::contract(double loup) {
 
 	if (k>0) l.erase(l.begin(),it0);
 
-	make_heap(l.begin(), l.end() ,HeapComparator<T>());
+	make_heap(l.begin(), l.end() ,costf.comparator());
 
 	//cout << " after contract heap " << l.size() << endl;
 
@@ -182,13 +195,13 @@ bool Heap<T>::empty() const {
 template<class T>
 void Heap<T>::push(T* el) {
 	l.push_back(std::pair<T*,double>(el,cost(*el)));
-	push_heap(l.begin(), l.end(), HeapComparator<T>());
+	push_heap(l.begin(), l.end(), costf.comparator());
 }
 
 template<class T>
 T* Heap<T>::pop() {
 	T* c = l.front().first;
-	pop_heap(l.begin(),l.end(), HeapComparator<T>()); // put the "best" at the end
+	pop_heap(l.begin(),l.end(), costf.comparator()); // put the "best" at the end
 	l.pop_back(); // removes the "best"
 	return c;     // and return it
 }

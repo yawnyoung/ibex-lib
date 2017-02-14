@@ -17,6 +17,16 @@
 namespace ibex {
 
 // -----------------------------------------------------------------------------------------------------------------------------------
+class MyComparator : public SharedHeapComparator<Cell> {
+public:
+	virtual bool operator()(const std::pair<Cell*,double>& c1, const std::pair<Cell*,double>& c2) const {
+		// ===============
+		// tu peux remplacer ici la formule par n'importe quel calcul
+		// basé sur les données contenues dans les cellules c1 et c2.
+		// ===============
+		return c1.second >= c2.second;
+	}
+};
 
 /**
  * \ingroup strategy
@@ -70,7 +80,7 @@ public:
 	 */
        virtual void set_optim_data(Cell& /*c*/, System& /*sys*/) { }
 
-	/**
+   	/**
 	 * If the cost depends on the loup.
 	 */
 	bool depends_on_loup;
@@ -90,6 +100,9 @@ public:
 	/** The "cost" of a element. */
 	virtual double cost(const Cell& c) const;
 
+    MyComparator my_comparator;
+
+    virtual const SharedHeapComparator<Cell>& shared_comparator() const { return my_comparator; };
 
 private:
 	/** Index of the objective variable. */
