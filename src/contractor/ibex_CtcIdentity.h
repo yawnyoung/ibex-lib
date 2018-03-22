@@ -2,7 +2,7 @@
 //                                  I B E X                                   
 // File        : ibex_CtcIdentity.h
 // Author      : Gilles Chabert
-// Copyright   : Ecole des Mines de Nantes (France)
+// Copyright   : IMT Atlantique (France)
 // License     : See the LICENSE file
 // Created     : May 14, 2012
 // Last Update : May 14, 2012
@@ -23,7 +23,7 @@ class CtcIdentity : public Ctc {
 public:
 
 	/**
-	 *  \brief Create a contractor which not modified the boxes
+	 *  \brief Create a contractor which not modifies the boxes
 	 */
 	CtcIdentity(int n);
 

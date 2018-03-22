@@ -60,7 +60,8 @@ public:
 	 *
 	 * Inputs:
 	 *   \param n        - number of variables or the <b>original system</b>
-	 *   \param ctc      - contractor for <b>extended<b> boxes (of size n+1)
+	 *   \param ctr_ctc  - contractor wrt constraints only, for <b>extended<b> boxes (of size n+1)
+	 *   \param opt_ctc  - contractor wrt to minimality (KKT) of the original system (n-sized boxes)
 	 *   \param bsc      - bisector for <b>extended<b> boxes (of size n+1)
 	 *   \param finder   - upper-bounding procedure for the original system (n-sized boxes)
 	 *   \param buffer   - buffer for <b>extended<b> boxes (of size n+1)
@@ -76,7 +77,7 @@ public:
 	 *          the optimizer will only rely on the evaluation of f and will be very slow.
 	 *
 	 */
-	Optimizer(int n, Ctc& ctc, Bsc& bsc, LoupFinder& finder, CellBufferOptim& buffer,
+	Optimizer(int n, Ctc& ctr_ctc, Ctc& opt_ctc, Bsc& bsc, LoupFinder& finder, CellBufferOptim& buffer,
 			int goal_var,
 			double eps_x=default_eps_x,
 			double rel_eps_f=default_rel_eps_f,
@@ -209,12 +210,22 @@ public:
 	const int goal_var;
 
 	/**
-	 * \brief Contractor for the extended system.
+	 * \brief Contractor w.r.t. constraints, i.e., the extended system.
 	 *
 	 * The extended system:
 	 * (y=f(x), g_1(x)<=0,...,g_m(x)<=0).
 	 */
-	Ctc& ctc;
+	Ctc& ctr_ctc;
+
+	/**
+	 * \brief Contractor w.r.t. optimality of the orignal NLP.
+	 *
+	 * Works on n-sized boxes.
+	 *
+	 * Warning: can come into conflict with upper bounding
+	 * (may potentially remove interesting loup points).
+	 */
+	Ctc& opt_ctc;
 
 	/**
 	 * \brief Bisector.
@@ -263,6 +274,20 @@ public:
 	 *                   long trace).
 	 */
 	int trace;
+
+	/**
+	 * \brief Forward bounding flag.
+	 *
+	 * By default: true.
+	 *
+	 * If true, then the following contraction is also enforced:
+	 *
+	 *     goal_var <= loup - max(rel_eps_f*|loup|, abs_eps_f).
+	 *
+	 * This trick allows to converge faster to a correct result but
+	 * usually looses the actual argmin.
+	 */
+	bool fwd_bounding;
 
 	/**
 	 * \brief Time limit.
@@ -356,9 +381,6 @@ private:
 
 	/** Currently entailed constraints */
 	//EntailedCtr* entailed;
-
-	//!! warning: sys.box should be properly set before call to constructor !!
-	//CtcKhunTucker kkt;
 
 	/* Remember return status of the last optimization. */
 	Status status;

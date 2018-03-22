@@ -16,6 +16,8 @@
 #include "ibex_CtcFixPoint.h"
 #include "ibex_CtcPolytopeHull.h"
 #include "ibex_CellDoubleHeap.h"
+#include "ibex_CtcKhunTucker.h"
+#include "ibex_CtcIdentity.h"
 #include "ibex_SmearFunction.h"
 #include "ibex_LSmear.h"
 #include "ibex_LoupFinderDefault.h"
@@ -58,9 +60,10 @@ ExtendedSystem& DefaultOptimizer::get_ext_sys(const System& sys, double eps_h) {
 	}
 }
 
-DefaultOptimizer::DefaultOptimizer(const System& sys, double rel_eps_f, double abs_eps_f, double eps_h, bool rigor, bool inHC4, double random_seed, double eps_x) :
+DefaultOptimizer::DefaultOptimizer(const System& sys, double rel_eps_f, double abs_eps_f, double eps_h, bool rigor, bool kkt, bool inHC4, double random_seed, double eps_x) :
 		Optimizer(sys.nb_var,
 			  ctc(get_ext_sys(sys,eps_h)), // warning: we don't know which argument is evaluated first
+			  rec(kkt? (Ctc*) new CtcKhunTucker(get_norm_sys(sys,eps_h)) : (Ctc*) new CtcIdentity(sys.nb_var)),
 //			  rec(new SmearSumRelative(get_ext_sys(sys,eps_h),eps_x)),
 			  rec(new LSmear(get_ext_sys(sys,eps_h),eps_x)),
 			  rec(rigor? (LoupFinder*) new LoupFinderCertify(sys,rec(new LoupFinderDefault(get_norm_sys(sys,eps_h),inHC4))) :
@@ -80,7 +83,7 @@ DefaultOptimizer::DefaultOptimizer(const System& sys, double rel_eps_f, double a
 
 }
 
-Ctc&  DefaultOptimizer::ctc(const System& ext_sys) {
+Ctc& DefaultOptimizer::ctc(const System& ext_sys) {
 	Array<Ctc> ctc_list(3);
 
 	// first contractor on ext_sys : incremental HC4 (propag ratio=0.01)

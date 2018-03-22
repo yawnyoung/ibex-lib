@@ -46,7 +46,9 @@ public:
     		double rel_eps_f=Optimizer::default_rel_eps_f,
 			double abs_eps_f=Optimizer::default_abs_eps_f,
 			double eps_h=NormalizedSystem::default_eps_h,
-			bool rigor=false, bool inHC4=true,
+			bool rigor=false,
+			bool kkt=false,
+			bool inHC4=true,
 			double random_seed=default_random_seed,
     		double eps_x=Optimizer::default_eps_x);
 

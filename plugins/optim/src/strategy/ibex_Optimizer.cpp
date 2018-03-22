@@ -42,15 +42,15 @@ void Optimizer::read_ext_box(const IntervalVector& ext_box, IntervalVector& box)
 	}
 }
 
-Optimizer::Optimizer(int n, Ctc& ctc, Bsc& bsc, LoupFinder& finder,
+Optimizer::Optimizer(int n, Ctc& ctc, Ctc& kkt, Bsc& bsc, LoupFinder& finder,
 		CellBufferOptim& buffer,
 		int goal_var, double eps_x, double rel_eps_f, double abs_eps_f) :
                 				n(n), goal_var(goal_var),
-                				ctc(ctc), bsc(bsc), loup_finder(finder), buffer(buffer),
+                				ctr_ctc(ctc), bsc(bsc), loup_finder(finder), buffer(buffer),
                 				eps_x(eps_x), rel_eps_f(rel_eps_f), abs_eps_f(abs_eps_f),
-                				trace(0), timeout(-1),
+                				trace(0), fwd_bounding(true), timeout(-1),
                 				status(SUCCESS),
-                				//kkt(normalized_user_sys),
+                				opt_ctc(kkt),
 						uplo(NEG_INFINITY), uplo_of_epsboxes(POS_INFINITY), loup(POS_INFINITY),
                 				loup_point(n), initial_loup(POS_INFINITY), loup_changed(false),
                                                 time(0), nb_cells(0) {
@@ -65,10 +65,13 @@ Optimizer::~Optimizer() {
 // compute the value ymax (decreasing the loup with the precision)
 // the heap and the current box are contracted with y <= ymax
 double Optimizer::compute_ymax() {
-	double ymax = loup - rel_eps_f*fabs(loup);
-	if (loup - abs_eps_f < ymax)
-		ymax = loup - abs_eps_f;
-	return ymax;
+	if (fwd_bounding) {
+		double ymax = loup - rel_eps_f*fabs(loup);
+		if (loup - abs_eps_f < ymax)
+			ymax = loup - abs_eps_f;
+		return ymax;
+	} else
+		return loup;
 }
 
 bool Optimizer::update_loup(const IntervalVector& box) {
@@ -195,7 +198,7 @@ void Optimizer::contract_and_bound(Cell& c, const IntervalVector& init_box) {
 	//cout << " [contract]  x before=" << c.box << endl;
 	//cout << " [contract]  y before=" << y << endl;
 
-	ctc.contract(c.box);
+	ctr_ctc.contract(c.box);
 
 	if (c.box.is_empty()) return;
 
@@ -242,7 +245,7 @@ void Optimizer::contract_and_bound(Cell& c, const IntervalVector& init_box) {
 	}
 
 	// ** important: ** must be done after upper-bounding
-	//kkt.contract(tmp_box);
+	opt_ctc.contract(tmp_box);
 
 	if (tmp_box.is_empty()) {
 		c.box.set_empty();
@@ -296,7 +299,11 @@ Optimizer::Status Optimizer::optimize(const IntervalVector& init_box, double obj
 	update_uplo();
 
 	try {
-	     while (!buffer.empty()) {
+		// we may reach the precision with a
+		// non-empty buffer (--no-fwd-bounding)
+	     while (get_obj_rel_prec()>rel_eps_f &&
+	    		 get_obj_abs_prec()>abs_eps_f &&
+				 !buffer.empty()) {
 		  
 			loup_changed=false;
 			// for double heap , choose randomly the buffer : top  has to be called before pop
