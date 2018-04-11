@@ -44,6 +44,8 @@ int main(int argc, char** argv) {
 	args::Flag rigor(parser, "rigor", "Activate rigor mode (certify feasibility of equalities).", {"rigor"});
 	args::Flag trace(parser, "trace", "Activate trace. Updates of loup/uplo are printed while minimizing.", {"trace"});
 	args::Flag format(parser, "format", "Display the output format in quiet mode", {"format"});
+	args::Flag kkt(parser, "kkt", "Activate Khun-Tucker contractor", {"kkt"});
+	args::Flag no_fwd_bounding(parser, "no-fwd-bounding", "Disable forward bounding", {"no-fwd-bounding"});
 	args::Flag quiet(parser, "quiet", "Print no message and display minimal information (for automatic output processing). See --format.",{'q',"quiet"});
 
 	args::Positional<std::string> filename(parser, "filename", "The name of the MINIBEX file.");
@@ -140,6 +142,12 @@ int main(int argc, char** argv) {
 				cout << "  rigor mode:\tON\t(feasibility of equalities certified)" << endl;
 		}
 
+		// This option certifies feasibility with equalities
+		if (kkt) {
+			if (!quiet)
+				cout << "  Khun-Tucker contractor:\tON\t" << endl;
+		}
+
 		if (initial_loup) {
 			if (!quiet)
 				cout << "  initial loup:\t" << initial_loup.Get() << " (a priori upper bound of the minimum)" << endl;
@@ -162,7 +170,7 @@ int main(int argc, char** argv) {
 				rel_eps_f? rel_eps_f.Get() : Optimizer::default_rel_eps_f,
 				abs_eps_f? abs_eps_f.Get() : Optimizer::default_abs_eps_f,
 				eps_h ?    eps_h.Get() :     NormalizedSystem::default_eps_h,
-				rigor, inHC4,
+				rigor, kkt, inHC4,
 				random_seed? random_seed.Get() : DefaultOptimizer::default_random_seed,
 				eps_x ?    eps_x.Get() :     Optimizer::default_eps_x
 				);
@@ -179,6 +187,12 @@ int main(int argc, char** argv) {
 			if (!quiet)
 				cout << "  trace:\tON" << endl;
 			o.trace=trace.Get();
+		}
+
+		if (no_fwd_bounding) {
+			if (!quiet)
+				cout << "  forward bounding:\tOFF" << endl;
+			o.fwd_bounding=false;
 		}
 
 		if (!inHC4) {
